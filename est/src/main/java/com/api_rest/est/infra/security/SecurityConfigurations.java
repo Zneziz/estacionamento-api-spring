@@ -36,6 +36,12 @@ public class SecurityConfigurations {
                     // Exemplo: O administrador cadastra vagas e lojas conveniadas
                     req.requestMatchers(HttpMethod.POST, "/spots").hasRole("ADMIN");
 
+                    req.requestMatchers(HttpMethod.PUT, "/pricing").hasRole("ADMIN");
+
+                    req.requestMatchers("/vehicles/**").hasRole("CLIENT");
+
+                    req.requestMatchers(HttpMethod.POST, "/stays/entry").hasAnyRole("OPERATOR", "ADMIN");
+
                     // Qualquer outra requisição precisa estar autenticada
                     req.anyRequest().authenticated();
                 })

@@ -21,5 +21,8 @@ public class Client extends User{
     @Column(nullable = false, unique = true, length = 11)
     private String cpf;
 
+    @Column(unique = true)
+    private String pcdCredential;
+
 
 }

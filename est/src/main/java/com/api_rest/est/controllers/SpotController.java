@@ -1,5 +1,6 @@
-package com.api_rest.est.domain.spots;
+package com.api_rest.est.controllers;
 
+import com.api_rest.est.domain.spots.SpotService;
 import com.api_rest.est.domain.spots.dto.SpotRequestDTO;
 import com.api_rest.est.domain.spots.dto.SpotResponseDTO;
 import jakarta.validation.Valid;
