@@ -1,13 +1,11 @@
 package com.api_rest.est.domain.users.dto;
 
-import com.api_rest.est.domain.users.Client;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 //recebe os dados e da uma verificada se segue as regras
-public record ClientResquestDTO(
+public record ClientRequestDTO(
         @NotBlank(message = "Name is mandatory")
         String name,
 

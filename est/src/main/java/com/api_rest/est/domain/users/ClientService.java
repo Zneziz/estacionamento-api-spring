@@ -18,7 +18,7 @@ public class ClientService {
     }
 
     //recebe o resquest da controller e promete devolver o response
-    public ClientResponseDTO register(ClientResquestDTO dto){
+    public ClientResponseDTO register(ClientRequestDTO dto){
         //regras de negocios
         if (repository.existByCpf(dto.cpf())){
             throw new IllegalArgumentException("CPF already registered");
