@@ -40,6 +40,8 @@ public class SecurityConfigurations {
 
                     req.requestMatchers("/vehicles/**").hasRole("CLIENT");
 
+                    req.requestMatchers(HttpMethod.POST, "/stays/exit").hasAnyRole("OPERATOR", "ADMIN");
+
                     req.requestMatchers(HttpMethod.POST, "/stays/entry").hasAnyRole("OPERATOR", "ADMIN");
 
                     // Qualquer outra requisição precisa estar autenticada

@@ -1,8 +1,6 @@
 package com.api_rest.est.domain.parking;
 
-import com.api_rest.est.domain.parking.dto.CurrentFeeResponseDTO;
-import com.api_rest.est.domain.parking.dto.EntryRequestDTO;
-import com.api_rest.est.domain.parking.dto.ParkingStayResponseDTO;
+import com.api_rest.est.domain.parking.dto.*;
 import com.api_rest.est.domain.pricing.FeeCalculator;
 import com.api_rest.est.domain.pricing.PricingRepository;
 import com.api_rest.est.domain.pricing.PricingTable;
@@ -136,4 +134,42 @@ public class ParkingStayService {
 
         return types;
     }
+
+    // RF08: O operador registra a saída, calcula o valor, registra o pagamento e libera a vaga na mesma transação
+    @Transactional
+    public ExitResponseDTO registerExit(ExitRequestDTO dto) {
+        String plate = dto.licensePlate().trim().toUpperCase();
+
+        // 1. Busca a permanência aberta para a placa informada
+        ParkingStay stay = stayRepository.findByVehicleLicensePlateIgnoreCaseAndStatus(plate, ParkingStayStatus.OPEN)
+                .orElseThrow(() -> new IllegalArgumentException("No open parking stay found for license plate: " + plate));
+
+        // 2. Busca a tabela de preços vigente para o tipo do veículo (CAR ou MOTORCYCLE)
+        PricingTable pricing = pricingRepository.findByVehicleType(stay.getVehicle().getType())
+                .orElseThrow(() -> new IllegalArgumentException("Pricing table not configured for vehicle type: " + stay.getVehicle().getType()));
+
+        LocalDateTime exitTime = LocalDateTime.now();
+
+        // 3. Calcula o valor final (tolerância de 10 min, 1ª hora, frações de 15 min e teto diário a cada 24h)
+        BigDecimal finalAmount = feeCalculator.calculateFee(stay.getEntryTime(), exitTime, pricing);
+
+        // 4. Grava o horário de saída, o valor calculado, o pagamento e encerra a permanência
+        stay.setExitTime(exitTime);
+        stay.setTotalAmount(finalAmount);
+        stay.setPaymentMethod(dto.paymentMethod());
+        stay.setPaid(true);
+        stay.setPaidAt(exitTime);
+        stay.setStatus(ParkingStayStatus.CLOSED);
+
+        // 5. Libera a vaga física
+        Spot spot = stay.getSpot();
+        spot.setOccupied(false);
+
+        // Salva ambos dentro da mesma transação (@Transactional garante atomicidade: tudo ou nada)
+        spotRepository.save(spot);
+        ParkingStay savedStay = stayRepository.save(stay);
+
+        return new ExitResponseDTO(savedStay);
+    }
+
 }

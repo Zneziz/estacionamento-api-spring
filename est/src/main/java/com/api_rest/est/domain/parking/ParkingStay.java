@@ -38,6 +38,14 @@ public class ParkingStay {
     private BigDecimal totalAmount;
 
     @Enumerated(EnumType.STRING)
+    private PaymentMethod paymentMethod;
+
+    @Column(nullable = false)
+    private boolean paid = false;
+
+    private LocalDateTime paidAt;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ParkingStayStatus status;
 }
