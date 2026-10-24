@@ -1,16 +1,23 @@
 package com.api_rest.est.domain.parking;
 
+import com.api_rest.est.domain.parking.dto.CurrentFeeResponseDTO;
 import com.api_rest.est.domain.parking.dto.EntryRequestDTO;
 import com.api_rest.est.domain.parking.dto.ParkingStayResponseDTO;
+import com.api_rest.est.domain.pricing.FeeCalculator;
+import com.api_rest.est.domain.pricing.PricingRepository;
+import com.api_rest.est.domain.pricing.PricingTable;
 import com.api_rest.est.domain.spots.Spot;
 import com.api_rest.est.domain.spots.SpotRepository;
 import com.api_rest.est.domain.spots.SpotType;
+import com.api_rest.est.domain.users.Role;
+import com.api_rest.est.domain.users.User;
 import com.api_rest.est.domain.vehicles.Vehicle;
 import com.api_rest.est.domain.vehicles.VehicleRepository;
 import com.api_rest.est.domain.vehicles.VehicleType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,14 +28,18 @@ public class ParkingStayService {
     private final ParkingStayRepository stayRepository;
     private final VehicleRepository vehicleRepository;
     private final SpotRepository spotRepository;
+    private final PricingRepository pricingRepository;
+    private final FeeCalculator feeCalculator;
 
     public ParkingStayService(
             ParkingStayRepository stayRepository,
             VehicleRepository vehicleRepository,
-            SpotRepository spotRepository) {
+            SpotRepository spotRepository, PricingRepository pricingRepository, FeeCalculator feeCalculator) {
         this.stayRepository = stayRepository;
         this.vehicleRepository = vehicleRepository;
         this.spotRepository = spotRepository;
+        this.pricingRepository = pricingRepository;
+        this.feeCalculator = feeCalculator;
     }
 
     @Transactional
@@ -64,6 +75,42 @@ public class ParkingStayService {
 
         ParkingStay savedStay = stayRepository.save(stay);
         return new ParkingStayResponseDTO(savedStay);
+    }
+
+    public CurrentFeeResponseDTO getCurrentFee(String licensePlate, User authenticatedUser) {
+        String plate = licensePlate.trim().toUpperCase();
+
+        // Busca a permanência aberta para esta placa
+        ParkingStay stay = stayRepository.findByVehicleLicensePlateIgnoreCaseAndStatus(plate, ParkingStayStatus.OPEN)
+                .orElseThrow(() -> new IllegalArgumentException("No open parking stay found for license plate: " + plate));
+
+        // Regra Geral: O cliente só acessa os próprios veículos e permanências
+        if (authenticatedUser.getRole() == Role.CLIENT) {
+            Long ownerId = stay.getVehicle().getClient().getId();
+            if (!ownerId.equals(authenticatedUser.getId())) {
+                throw new IllegalArgumentException("You do not have permission to view this vehicle's stay.");
+            }
+        }
+
+        // Busca a tabela de preços vigente para o tipo do veículo (CAR ou MOTORCYCLE)
+        PricingTable pricing = pricingRepository.findByVehicleType(stay.getVehicle().getType())
+                .orElseThrow(() -> new IllegalArgumentException("Pricing table not configured for vehicle type: " + stay.getVehicle().getType()));
+
+        LocalDateTime now = LocalDateTime.now();
+        long elapsedMinutes = java.time.Duration.between(stay.getEntryTime(), now).toMinutes();
+
+        // Calcula quanto custaria se saísse agora
+        BigDecimal currentAmount = feeCalculator.calculateFee(stay.getEntryTime(), now, pricing);
+
+        return new CurrentFeeResponseDTO(
+                stay.getId(),
+                stay.getVehicle().getLicensePlate(),
+                stay.getSpot().getCode(),
+                stay.getEntryTime(),
+                now,
+                elapsedMinutes,
+                currentAmount
+        );
     }
 
     private List<SpotType> getCompatibleSpotTypes(Vehicle vehicle) {
