@@ -1,5 +1,6 @@
 package com.api_rest.est.domain.parking;
 
+import com.api_rest.est.domain.partners.PartnerStore;
 import com.api_rest.est.domain.spots.Spot;
 import com.api_rest.est.domain.vehicles.Vehicle;
 import jakarta.persistence.*;
@@ -44,6 +45,19 @@ public class ParkingStay {
     private boolean paid = false;
 
     private LocalDateTime paidAt;
+
+    // RF09: Ticket perdido (cobra uma diária a mais sobre o valor calculado)
+    @Column(nullable = false)
+    private boolean lostTicket = false;
+
+    // RF10: Indica se a saída teve isenção por plano mensal ativo em dia
+    @Column(nullable = false)
+    private boolean monthlyPlanApplied = false;
+
+    // RF11: No máximo um convênio por permanência
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "partner_store_id")
+    private PartnerStore partnerStore;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

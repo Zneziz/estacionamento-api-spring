@@ -15,27 +15,58 @@ public class FeeCalculator {
     private static final int MINUTES_IN_DAY = 24 * 60; // 1440 minutos
 
     public BigDecimal calculateFee(LocalDateTime entryTime, LocalDateTime exitTime, PricingTable pricing) {
-        long totalMinutes = Duration.between(entryTime, exitTime).toMinutes();
+        return calculateFee(entryTime, exitTime, pricing, 0, false, false);
+    }
 
-        // RF04 / RF08: Os 10 primeiros minutos são de tolerância, sem cobrança
-        if (totalMinutes <= PricingTable.TOLERANCE_MINUTES) {
-            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+    public BigDecimal calculateFee(
+            LocalDateTime entryTime,
+            LocalDateTime exitTime,
+            PricingTable pricing,
+            int discountHours,
+            boolean isActiveMonthlyMember,
+            boolean lostTicket) {
+
+        BigDecimal baseAmount;
+
+        // RF10: Mensalista com mensalidade em dia não paga pela permanência na saída
+        if (isActiveMonthlyMember) {
+            baseAmount = BigDecimal.ZERO;
+        } else {
+            long totalMinutes = Duration.between(entryTime, exitTime).toMinutes();
+
+            // RF04 / RF08: Os 10 primeiros minutos são de tolerância, sem cobrança
+            if (totalMinutes <= PricingTable.TOLERANCE_MINUTES) {
+                baseAmount = BigDecimal.ZERO;
+            } else {
+                // RF11: Na saída, o operador informa o convênio e as horas são abatidas antes do cálculo
+                long discountMinutes = Math.max(0, discountHours) * 60L;
+                long billableMinutes = totalMinutes - discountMinutes;
+
+                if (billableMinutes <= 0) {
+                    baseAmount = BigDecimal.ZERO;
+                } else {
+                    // Quantos períodos completos de 24 horas se passaram sobre o tempo cobrável
+                    long fullDays = billableMinutes / MINUTES_IN_DAY;
+                    long remainingMinutes = billableMinutes % MINUTES_IN_DAY;
+
+                    // Multiplica os dias completos pelo teto diário
+                    baseAmount = pricing.getDailyCap().multiply(BigDecimal.valueOf(fullDays));
+
+                    // Calcula o valor do período parcial restante (se houver)
+                    if (remainingMinutes > 0) {
+                        BigDecimal partialDayAmount = calculatePeriodAmount(remainingMinutes, pricing);
+                        baseAmount = baseAmount.add(partialDayAmount);
+                    }
+                }
+            }
         }
 
-        // Quantos períodos completos de 24 horas se passaram
-        long fullDays = totalMinutes / MINUTES_IN_DAY;
-        long remainingMinutes = totalMinutes % MINUTES_IN_DAY;
-
-        // Multiplica os dias completos pelo teto diário
-        BigDecimal totalAmount = pricing.getDailyCap().multiply(BigDecimal.valueOf(fullDays));
-
-        // Calcula o valor do período parcial restante (se houver)
-        if (remainingMinutes > 0) {
-            BigDecimal partialDayAmount = calculatePeriodAmount(remainingMinutes, pricing);
-            totalAmount = totalAmount.add(partialDayAmount);
+        // RF09: Ticket perdido cobra uma diária a mais sobre o valor calculado
+        if (lostTicket) {
+            baseAmount = baseAmount.add(pricing.getDailyCap());
         }
 
-        return totalAmount.setScale(2, RoundingMode.HALF_UP);
+        return baseAmount.setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calculatePeriodAmount(long minutes, PricingTable pricing) {

@@ -19,6 +19,11 @@ public record ExitResponseDTO(
         BigDecimal totalAmount,
         PaymentMethod paymentMethod,
         boolean paid,
+        boolean lostTicket,
+        boolean monthlyPlanApplied,
+        Long partnerStoreId,
+        String partnerStoreName,
+        int discountHoursApplied,
         ParkingStayStatus status
 ) {
     public ExitResponseDTO(ParkingStay stay) {
@@ -33,6 +38,11 @@ public record ExitResponseDTO(
                 stay.getTotalAmount(),
                 stay.getPaymentMethod(),
                 stay.isPaid(),
+                stay.isLostTicket(),
+                stay.isMonthlyPlanApplied(),
+                stay.getPartnerStore() != null ? stay.getPartnerStore().getId() : null,
+                stay.getPartnerStore() != null ? stay.getPartnerStore().getName() : null,
+                stay.getPartnerStore() != null ? stay.getPartnerStore().getDiscountHours() : 0,
                 stay.getStatus()
         );
     }
