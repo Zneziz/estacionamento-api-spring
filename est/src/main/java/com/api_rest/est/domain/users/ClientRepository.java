@@ -5,7 +5,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ClientRepository extends JpaRepository<Client, Long>{
 
-    //usa o existBy para fazer uma consulta. ex: SELECT 1 FROM clientes WHERE cpf = ? LIMIT 1
-    boolean existByCpf(String cpf);
-    boolean existByEmail(String email);
+    //usa o existsBy para fazer uma consulta. ex: SELECT 1 FROM clientes WHERE cpf = ? LIMIT 1
+    boolean existsByCpf(String cpf);
+    boolean existsByEmail(String email);
+
+    default boolean existByCpf(String cpf) {
+        return existsByCpf(cpf);
+    }
+
+    default boolean existByEmail(String email) {
+        return existsByEmail(email);
+    }
 }

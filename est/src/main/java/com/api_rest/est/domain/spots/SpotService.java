@@ -4,6 +4,8 @@ import com.api_rest.est.domain.spots.dto.SpotRequestDTO;
 import com.api_rest.est.domain.spots.dto.SpotResponseDTO;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class SpotService {
 
@@ -25,5 +27,11 @@ public class SpotService {
 
         Spot savedSpot = repository.save(spot);
         return new SpotResponseDTO(savedSpot);
+    }
+
+    public List<SpotResponseDTO> listAll() {
+        return repository.findAll().stream()
+                .map(SpotResponseDTO::new)
+                .toList();
     }
 }
