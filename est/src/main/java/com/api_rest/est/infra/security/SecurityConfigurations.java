@@ -31,18 +31,22 @@ public class SecurityConfigurations {
                     // Rotas públicas (não precisam de token)
                     req.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/clients").permitAll();
+                    req.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll();
 
-                    // Rotas restritas baseadas no perfil do usuário
-                    // Exemplo: O administrador cadastra vagas e lojas conveniadas
+                    // Rotas restritas ao Administrador (RF03, RF04, RF11, RF13, RF14, RF15)
                     req.requestMatchers(HttpMethod.POST, "/spots").hasRole("ADMIN");
-
                     req.requestMatchers(HttpMethod.PUT, "/pricing").hasRole("ADMIN");
+                    req.requestMatchers(HttpMethod.POST, "/partners").hasRole("ADMIN");
+                    req.requestMatchers("/reports/**").hasRole("ADMIN");
 
+                    // Rotas restritas ao Cliente (RF05, RF10, RF12)
                     req.requestMatchers("/vehicles/**").hasRole("CLIENT");
+                    req.requestMatchers("/monthly-plans/**").hasRole("CLIENT");
+                    req.requestMatchers(HttpMethod.GET, "/stays/history").hasRole("CLIENT");
 
-                    req.requestMatchers(HttpMethod.POST, "/stays/exit").hasAnyRole("OPERATOR", "ADMIN");
-
+                    // Rotas de Operação (RF06, RF08, RF09, RF11)
                     req.requestMatchers(HttpMethod.POST, "/stays/entry").hasAnyRole("OPERATOR", "ADMIN");
+                    req.requestMatchers(HttpMethod.POST, "/stays/exit").hasAnyRole("OPERATOR", "ADMIN");
 
                     // Qualquer outra requisição precisa estar autenticada
                     req.anyRequest().authenticated();
