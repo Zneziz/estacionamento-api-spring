@@ -3,17 +3,17 @@ package com.api_rest.est.functional;
 import com.api_rest.est.domain.parking.ParkingStay;
 import com.api_rest.est.domain.parking.ParkingStayRepository;
 import com.api_rest.est.domain.parking.ParkingStayStatus;
+import com.api_rest.est.domain.spots.SpotRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-
 
 import java.time.LocalDateTime;
 
@@ -34,6 +34,9 @@ class ParkingApiFunctionalTest {
     @Autowired
     private ParkingStayRepository stayRepository;
 
+    @Autowired
+    private SpotRepository spotRepository;
+
     private String loginAndGetToken(String email, String password) throws Exception {
         String payload = String.format("{\"email\":\"%s\",\"password\":\"%s\"}", email, password);
         MvcResult result = mockMvc.perform(post("/auth/login")
@@ -48,6 +51,9 @@ class ParkingApiFunctionalTest {
     @Test
     @DisplayName("Fluxo Funcional Completo RF01 a RF15: Autenticação, Vagas, Preços, Veículos, Entrada, Saída, Ticket Perdido, Mensalista, Convênio, Histórico e Relatórios")
     void shouldExecuteCompleteParkingWorkflowEndToEnd() throws Exception {
+        stayRepository.deleteAll();
+        spotRepository.deleteAll();
+
         // 1. RF01: Cadastro de cliente (senha nunca devolvida na resposta)
         String clientJson = """
                 {

@@ -31,21 +31,10 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // Carga inicial: contas de Administrador e Operador já vêm criadas
-        if (userRepository.findByEmail("admin@estacionamento.com") == null) {
-            User admin = new User();
-            admin.setEmail("admin@estacionamento.com");
-            admin.setPassword(passwordEncoder.encode("admin1234"));
-            admin.setRole(Role.ADMIN);
-            userRepository.save(admin);
-        }
-
-        if (userRepository.findByEmail("operador@estacionamento.com") == null) {
-            User operator = new User();
-            operator.setEmail("operador@estacionamento.com");
-            operator.setPassword(passwordEncoder.encode("operador1234"));
-            operator.setRole(Role.OPERATOR);
-            userRepository.save(operator);
-        }
+        createUserIfNotExists("admin@estacionamento.com", "admin1234", Role.ADMIN);
+        createUserIfNotExists("operador@estacionamento.com", "operador1234", Role.OPERATOR);
+        createUserIfNotExists("admin@parking.com", "admin1234", Role.ADMIN);
+        createUserIfNotExists("operator@parking.com", "operator1234", Role.OPERATOR);
 
         // Tabela de preços padrão caso ainda não exista
         if (pricingRepository.findByVehicleType(VehicleType.CAR).isEmpty()) {
@@ -64,6 +53,16 @@ public class DataInitializer implements CommandLineRunner {
             motoPricing.setAdditionalFractionRate(new BigDecimal("1.50"));
             motoPricing.setDailyCap(new BigDecimal("25.00"));
             pricingRepository.save(motoPricing);
+        }
+    }
+
+    private void createUserIfNotExists(String email, String rawPassword, Role role) {
+        if (userRepository.findByEmail(email) == null) {
+            User user = new User();
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            user.setRole(role);
+            userRepository.save(user);
         }
     }
 }
